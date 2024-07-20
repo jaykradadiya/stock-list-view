@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  spring-boot-app:
+    build: .
+    ports:
+      - "8080:8080"
+#    depends_on:
+#      - mongodb
+
+#  mongodb:
+#    image: mongo:4.4
+#    restart: always
+#    environment:
+#      MONGO_INITDB_ROOT_USERNAME: root
+#      MONGO_INITDB_ROOT_PASSWORD: example
+#    ports:
+#      - "27017:27017"
