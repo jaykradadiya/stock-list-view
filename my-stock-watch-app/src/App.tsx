@@ -1,46 +1,80 @@
-import { useState, useEffect } from 'react';
-import { ChakraProvider, Box, Text, Alert, AlertIcon, AlertTitle, AlertDescription, VStack, HStack } from '@chakra-ui/react';
-import StockSearch from './StockSearch';
-import StockList from './StockList';
-import { fetchStocks, addStock, removeStock, StockData } from './services/api';
+import React, { useState, useEffect } from 'react';
+import { ChakraProvider, Box, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
+import StockSidebar from './StockSidebar';
+import StockDetails from './StockDetails';
+import { fetchStocks, addStock, removeStock, fetchStockDetails, StockData, StockInformation } from './services/api';
 import chakraTheme from './assets/theme';
+
+const sidebarWidth = '300px'; // Variable for sidebar width
 
 const App: React.FC = () => {
   const [stocks, setStocks] = useState<StockData[]>([]);
+  const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
+  const [stockDetails, setStockDetails] = useState<StockInformation | null>(null);
   const [alertMessage, setAlertMessage] = useState<string>('');
+  const [alertType, setAlertType] = useState<'success' | 'error' | null>(null);
   const [openAlert, setOpenAlert] = useState<boolean>(false);
 
   useEffect(() => {
     fetchInitialStocks();
   }, []);
 
+  useEffect(() => {
+    if (selectedStock) {
+      fetchStockDetailsForSelectedStock();
+    }
+  }, [selectedStock]);
+
   const fetchInitialStocks = async () => {
     try {
       const data = await fetchStocks();
       setStocks(data);
+      if (data.length > 0) {
+        setSelectedStock(data[0]); // Set the first stock as selected by default
+      }
     } catch (error) {
       console.error('Error fetching stocks:', error);
       setAlertMessage('Failed to fetch stocks');
+      setAlertType('error');
       setOpenAlert(true);
     }
   };
 
-  const handleAddStock = async (stockSymbol: StockData) => {
+  const fetchStockDetailsForSelectedStock = async () => {
+    if (selectedStock) {
+      try {
+        const details = await fetchStockDetails(selectedStock.symbol);
+        setStockDetails(details);
+      } catch (error) {
+        console.error('Error fetching stock details:', error);
+        setStockDetails(null);
+      }
+    }
+  };
+
+  const handleAddStock = async (stock: StockData) => {
     try {
-      if (stocks.some(stock => stock.symbol === stockSymbol.symbol)) {
-        setAlertMessage(`Stock ${stockSymbol.symbol} is already in the watchlist.`);
+      if (stocks.some(s => s.symbol === stock.symbol)) {
+        setAlertMessage(`Stock ${stock.symbol} is already in the watchlist.`);
+        setAlertType('error');
         setOpenAlert(true);
         return;
       }
 
-      const newStock = await addStock(stockSymbol.symbol);
-      setStocks(prevStocks => [...prevStocks, newStock]);
-
-      setAlertMessage(`Stock ${stockSymbol.symbol} added to watchlist.`);
+      const newStock: StockData[] = await addStock(stock.symbol);
+      setStocks((prevStocks: StockData[]) => {
+        const existingSymbols = new Set(prevStocks.map(s => s.symbol));
+        const filteredNewStocks = newStock.filter(newStock => !existingSymbols.has(newStock.symbol));
+        return [...prevStocks, ...filteredNewStocks];
+      });
+      setSelectedStock(stock);
+      setAlertMessage(`Stock ${stock.symbol} added to watchlist.`);
+      setAlertType('success');
       setOpenAlert(true);
     } catch (error) {
       console.error('Error adding stock:', error);
       setAlertMessage('Failed to add stock');
+      setAlertType('error');
       setOpenAlert(true);
     }
   };
@@ -54,13 +88,16 @@ const App: React.FC = () => {
         const updatedStocks = [...stocks];
         updatedStocks.splice(index, 1);
         setStocks(updatedStocks);
+        setSelectedStock(prev => prev?.symbol === stockToRemove.symbol ? null : prev);
 
         setAlertMessage(`Stock ${stockToRemove.symbol} removed from watchlist.`);
+        setAlertType('success');
         setOpenAlert(true);
       }
     } catch (error) {
       console.error('Error removing stock:', error);
       setAlertMessage('Failed to remove stock');
+      setAlertType('error');
       setOpenAlert(true);
     }
   };
@@ -71,38 +108,30 @@ const App: React.FC = () => {
 
   return (
       <ChakraProvider theme={chakraTheme}>
-        <Box
-            width="100vw"
-            height="100vh"
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            p={8}
-        >
-          <Text fontSize="4xl" fontWeight="bold" textAlign="center" mb={6}>
-            Stock Watchlist
-          </Text>
-
-          <StockSearch onAddStock={handleAddStock} />
-
-          <Box
-              width="100%"
-              maxW="1200px" // Adjust as needed for desktop
-              flex="1"
-              mt={6}
-          >
-            <StockList stocks={stocks} onRemoveStock={handleRemoveStock} />
+        <Box display="flex" height="100vh">
+          <StockSidebar
+              stocks={stocks}
+              selectedStock={selectedStock}
+              onSelect={setSelectedStock}
+              onRemove={handleRemoveStock}
+              onAddStock={handleAddStock}
+              sidebarWidth={sidebarWidth}
+          />
+          <Box flex="1" ml={sidebarWidth} p={6}>
+            <Text fontSize="4xl" fontWeight="bold" mb={6}>
+              Stock Details
+            </Text>
+            <StockDetails stockInfo={stockDetails} />
+            {openAlert && (
+                <Alert status={alertType || 'error'} variant="top-accent" borderRadius="md" mt={6} onClose={handleCloseAlert}>
+                  <AlertIcon />
+                  <Box flex="1">
+                    <AlertTitle>{alertType === 'success' ? 'Success' : 'Error'}</AlertTitle>
+                    <AlertDescription>{alertMessage}</AlertDescription>
+                  </Box>
+                </Alert>
+            )}
           </Box>
-
-          {openAlert && (
-              <Alert status="error" variant="top-accent" borderRadius="md" mt={6} onClose={handleCloseAlert}>
-                <AlertIcon />
-                <Box flex="1">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{alertMessage}</AlertDescription>
-                </Box>
-              </Alert>
-          )}
         </Box>
       </ChakraProvider>
   );

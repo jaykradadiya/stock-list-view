@@ -1,137 +1,119 @@
-import React from 'react';
-import { Box, Text, VStack, HStack, Divider, useBreakpointValue, Container } from '@chakra-ui/react';
-import { StockInformation } from './services/api'; // Adjust the path as per your API service
+import React, { useEffect, useState } from 'react';
+import {
+  Box,
+  Text,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  useColorModeValue,
+} from '@chakra-ui/react';
+import { StockInformation, fetchStockDetails } from './services/api';
 
 interface Props {
-  stockInfo: StockInformation | null;
+  stockInfo: StockInformation | null; // Add selectedStockSymbol prop
 }
 
+let noOfSeconds = 5;
 const StockDetails: React.FC<Props> = ({ stockInfo }) => {
-  if (!stockInfo) {
+  const [currentStockInfo, setCurrentStockInfo] = useState<StockInformation | null>(stockInfo);
+
+  useEffect(() => {
+    // Function to fetch stock details
+    const fetchDetails = async () => {
+      if (stockInfo?.symbol) {
+        try {
+          const details = await fetchStockDetails(stockInfo.symbol);
+          setCurrentStockInfo(details);
+        } catch (error) {
+          console.error('Error fetching stock details:', error);
+        }
+      }
+    };
+
+    // Fetch details initially
+    fetchDetails();
+
+    // Set up interval for polling
+    const intervalId = setInterval(fetchDetails, noOfSeconds*1000);
+
+    // Clean up interval on component unmount or when selectedStockSymbol changes
+    return () => clearInterval(intervalId);
+  }, [stockInfo]); // Dependency array includes selectedStockSymbol
+
+  if (!currentStockInfo) {
     return <Text>No details available for this stock.</Text>;
   }
 
-  const { symbol, currency, name, timestamp, type, region, marketOpen, marketClose, stockHistories } = stockInfo;
+  const { symbol, currency, name, timestamp, type, region, marketOpen, marketClose, stockHistories } = currentStockInfo;
 
-  // Function to format the timestamp
-  const formattedDate = (ts: string | null): string => {
-    if (!ts) return '';
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-      hour12: false,
-    }).format(new Date(ts));
-  };
-
-  // Responsive padding and margin
-  const padding = useBreakpointValue({ base: 4, md: 6, lg: 8 });
-  const marginTop = useBreakpointValue({ base: 2, md: 4, lg: 6 });
-  const headingSize = useBreakpointValue({ base: 'lg', md: 'xl', lg: '2xl' });
-  const textSize = useBreakpointValue({ base: 'md', md: 'lg', lg: 'xl' });
+  const details = [
+    { label: 'Currency', value: currency },
+    { label: 'Type', value: type },
+    { label: 'Region', value: region },
+    { label: 'Market Open', value: marketOpen },
+    { label: 'Market Close', value: marketClose },
+    { label: 'Time', value: timestamp },
+  ];
 
   return (
-      <Container maxW="container.xl" p={padding} mt={marginTop}>
-        <Box borderWidth={1} borderRadius="md" boxShadow="md" p={padding} bg="white">
-          <Text fontSize={headingSize} fontWeight="bold" textAlign="center" mb={marginTop}>
-            {name} ({symbol})
-          </Text>
+      <Box p={6}>
+        <Text fontSize="2xl" fontWeight="bold" mb={4}>
+          {name} ({symbol})
+        </Text>
+        {details.length > 0 && (
+            <Table variant="simple" mb={4}>
+              <Thead>
+                <Tr>
+                  <Th>Label</Th>
+                  <Th>Value</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {details.map((detail, index) => detail.value && (
+                    <Tr key={index}>
+                      <Td>{detail.label}</Td>
+                      <Td>{detail.value}</Td>
+                    </Tr>
+                ))}
+              </Tbody>
+            </Table>
+        )}
 
-          <VStack spacing={6} align="stretch">
-            {currency && (
-                <HStack justify="space-between" py={2}>
-                  <Text fontWeight="bold" fontSize={textSize}>
-                    Currency:
-                  </Text>
-                  <Text fontSize={textSize}>{currency}</Text>
-                </HStack>
-            )}
-            {type && (
-                <HStack justify="space-between" py={2}>
-                  <Text fontWeight="bold" fontSize={textSize}>
-                    Type:
-                  </Text>
-                  <Text fontSize={textSize}>{type}</Text>
-                </HStack>
-            )}
-            {region && (
-                <HStack justify="space-between" py={2}>
-                  <Text fontWeight="bold" fontSize={textSize}>
-                    Region:
-                  </Text>
-                  <Text fontSize={textSize}>{region}</Text>
-                </HStack>
-            )}
-            {marketOpen && (
-                <HStack justify="space-between" py={2}>
-                  <Text fontWeight="bold" fontSize={textSize}>
-                    Market Open:
-                  </Text>
-                  <Text fontSize={textSize}>{marketOpen}</Text>
-                </HStack>
-            )}
-            {marketClose && (
-                <HStack justify="space-between" py={2}>
-                  <Text fontWeight="bold" fontSize={textSize}>
-                    Market Close:
-                  </Text>
-                  <Text fontSize={textSize}>{marketClose}</Text>
-                </HStack>
-            )}
-            {timestamp && (
-                <HStack justify="space-between" py={2}>
-                  <Text fontWeight="bold" fontSize={textSize}>
-                    Time:
-                  </Text>
-                  <Text fontSize={textSize}>{timestamp}</Text>
-                </HStack>
-            )}
-          </VStack>
-
-          {/* Stock Histories Section */}
-          {stockHistories && stockHistories.length > 0 && (
-              <>
-                <Divider my={marginTop} />
-                <Text fontSize="xl" fontWeight="bold" mb={marginTop}>
-                  Stock Histories
-                </Text>
-                <VStack spacing={4} align="stretch">
+        {stockHistories && stockHistories.length > 0 && (
+            <Box mt={6}>
+              <Text fontSize="xl" fontWeight="bold" mb={4}>
+                Stock Histories
+              </Text>
+              <Table variant="simple">
+                <Thead>
+                  <Tr>
+                    <Th>Date</Th>
+                    <Th>Price</Th>
+                    <Th>Open</Th>
+                    <Th>High</Th>
+                    <Th>Low</Th>
+                    <Th>Volume</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
                   {stockHistories.map((history, index) => (
-                      <Box key={index} p={4} borderWidth={1} borderRadius="md" boxShadow="sm" bg="gray.50">
-                        <HStack justify="space-between" py={1}>
-                          <Text fontWeight="bold">Timestamp:</Text>
-                          <Text>{formattedDate(new Date(history.timestamp).toISOString())}</Text>
-                        </HStack>
-                        <HStack justify="space-between" py={1}>
-                          <Text fontWeight="bold">Price:</Text>
-                          <Text>{history.price}</Text>
-                        </HStack>
-                        <HStack justify="space-between" py={1}>
-                          <Text fontWeight="bold">Open:</Text>
-                          <Text>{history.open}</Text>
-                        </HStack>
-                        <HStack justify="space-between" py={1}>
-                          <Text fontWeight="bold">High:</Text>
-                          <Text>{history.high}</Text>
-                        </HStack>
-                        <HStack justify="space-between" py={1}>
-                          <Text fontWeight="bold">Low:</Text>
-                          <Text>{history.low ?? '-'}</Text>
-                        </HStack>
-                        <HStack justify="space-between" py={1}>
-                          <Text fontWeight="bold">Volume:</Text>
-                          <Text>{history.volume ?? '-'}</Text>
-                        </HStack>
-                      </Box>
+                      <Tr key={index}>
+                        <Td>{history.timestamp ? new Date(history.timestamp).toLocaleDateString() : 'N/A'}</Td>
+                        <Td>{history.price !== undefined ? history.price.toFixed(2) : 'N/A'}</Td>
+                        <Td>{history.open !== undefined ? history.open.toFixed(2) : 'N/A'}</Td>
+                        <Td>{history.high !== undefined ? history.high.toFixed(2) : 'N/A'}</Td>
+                        <Td>{history.low !== undefined ? history.low.toFixed(2) : 'N/A'}</Td>
+                        <Td>{history.volume !== undefined ? history.volume.toLocaleString() : 'N/A'}</Td>
+                      </Tr>
                   ))}
-                </VStack>
-              </>
-          )}
-        </Box>
-      </Container>
+                </Tbody>
+              </Table>
+            </Box>
+        )}
+      </Box>
   );
 };
 

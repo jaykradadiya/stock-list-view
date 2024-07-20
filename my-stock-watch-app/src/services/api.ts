@@ -33,14 +33,6 @@ export interface StockHistory {
 
 // Populate StockInformation from JSON data
 const mapJsonToStockInformation = (jsonData: any): StockInformation => {
-    console.log(jsonData.stockHistories.map((history:any) :StockHistory => ({
-        price: history?.price,
-        open: history?.open,
-        high: history?.high,
-        low: history?.low,
-        volume: history?.volume,
-        timestamp: history?.timestamp
-    })));
     return {
         symbol: jsonData?.symbol,
         currency: jsonData?.currency,
@@ -50,7 +42,7 @@ const mapJsonToStockInformation = (jsonData: any): StockInformation => {
         region: jsonData?.region, // Adjust as per your requirement
         marketOpen: jsonData?.marketOpen, // Adjust as per your requirement
         marketClose: jsonData?.marketClose, // Adjust as per your requirement
-        stockHistories: jsonData.stockHistories.map((history:any) :StockHistory => ({
+        stockHistories: jsonData?.stockHistories?.map((history:any) :StockHistory => ({
             price: history?.price,
             open: history?.open,
             high: history?.high,

@@ -10,7 +10,8 @@ import {
     ModalCloseButton,
     Flex,
     useToast,
-    useDisclosure
+    useDisclosure,
+    useColorModeValue
 } from '@chakra-ui/react';
 import AsyncCreatableSelect from 'react-select/async-creatable';
 import debounce from 'lodash.debounce';
@@ -18,13 +19,14 @@ import { fetchData, StockData } from './services/api';
 
 interface Props {
     onAddStock: (stock: StockData) => void;
+    buttonWidth: string; // Add buttonWidth prop
 }
 
-const StockSearch: React.FC<Props> = ({ onAddStock }) => {
+const StockSearch: React.FC<Props> = ({ onAddStock, buttonWidth }) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [inputValue, setInputValue] = useState('');
     const [loading, setLoading] = useState(false);
-    const [selectedOption, setSelectedOption] = useState<StockData | null>(null);
+    const [selectedOption, setSelectedOption] = useState<{ value: StockData; label: string } | null>(null);
     const toast = useToast();
 
     const debouncedLoadOptions = debounce(async (inputValue: string, callback: (options: any[]) => void) => {
@@ -38,7 +40,7 @@ const StockSearch: React.FC<Props> = ({ onAddStock }) => {
             const response = await fetchData(inputValue);
             const options = response.map(stock => ({
                 value: stock,
-                label: stock.name
+                label: `${stock.symbol} - ${stock.name}` // Show both symbol and name
             }));
             callback(options);
         } catch (error) {
@@ -54,13 +56,8 @@ const StockSearch: React.FC<Props> = ({ onAddStock }) => {
         } finally {
             setLoading(false);
         }
-    }, 1400);
+    }, 500);
 
-    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const value = event.target.value;
-        setInputValue(value);
-        debouncedLoadOptions(value, (options) => setOptions(options));
-    };
 
     const handleAddStock = () => {
         if (selectedOption) {
@@ -70,7 +67,7 @@ const StockSearch: React.FC<Props> = ({ onAddStock }) => {
             onClose();
             toast({
                 title: 'Stock added.',
-                description: `${selectedOption.label} has been added to your stocks.`,
+                description: `${selectedOption.value.symbol} - ${selectedOption.value.name} has been added to your stocks.`,
                 status: 'success',
                 duration: 5000,
                 isClosable: true,
@@ -80,23 +77,34 @@ const StockSearch: React.FC<Props> = ({ onAddStock }) => {
 
     return (
         <Box textAlign="center" mt={8}>
-            <Button variant="outline" colorScheme="blue" onClick={onOpen}>
+            <Button
+                variant="solid"
+                colorScheme="teal"
+                onClick={onOpen}
+                borderRadius="md"
+                boxShadow="md"
+                size="lg"
+                _hover={{ bg: 'teal.600' }}
+                _focus={{ boxShadow: 'outline' }}
+                width="full"
+                maxWidth={buttonWidth}
+            >
                 Add Stock
             </Button>
-
             <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
                 <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(10px)" />
                 <ModalContent>
                     <ModalHeader textAlign="center">Add Stock</ModalHeader>
                     <ModalCloseButton />
                     <ModalBody>
-                        <Box p={4} bg="white" borderRadius="lg" boxShadow="lg">
+                        <Box p={4} bg={useColorModeValue('white', 'gray.800')} borderRadius="lg" boxShadow="lg">
                             <AsyncCreatableSelect
                                 cacheOptions
                                 defaultOptions
-                                getOptionValue={(option) => option.name}
+                                getOptionValue={(option) => option.value.symbol}
+                                getOptionLabel={(option) => option.label} // Display both symbol and name
                                 loadOptions={debouncedLoadOptions as any}
-                                onChange={(selectedOption: StockData) => setSelectedOption(selectedOption)}
+                                onChange={(selectedOption: any) => setSelectedOption(selectedOption)}
                                 value={selectedOption}
                                 placeholder="Select or create a stock"
                                 styles={{
@@ -111,23 +119,15 @@ const StockSearch: React.FC<Props> = ({ onAddStock }) => {
                                         ...base,
                                         boxShadow: 'lg',
                                         borderRadius: 'md',
+                                    }),
+                                    option: (provided, state) => ({
+                                        ...provided,
+                                        backgroundColor: state.isSelected ? 'gray.200' : provided.backgroundColor,
+                                        color: state.isSelected ? 'black' : provided.color,
+                                        padding: 10,
                                     })
                                 }}
                             />
-                            <Flex justify="center" mt={3}>
-                                <Button
-                                    variant="solid"
-                                    colorScheme='teal'
-                                    onClick={handleAddStock}
-                                    disabled={!selectedOption}
-                                    width="full"
-                                    maxWidth="200px"
-                                    boxShadow="md"
-                                    borderRadius="md"
-                                >
-                                    Add Stock
-                                </Button>
-                            </Flex>
                         </Box>
                     </ModalBody>
                 </ModalContent>
