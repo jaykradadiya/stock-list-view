@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Container, Typography, Box, Snackbar } from '@mui/material';
+import { ChakraProvider, Box, Text, Alert, AlertIcon, AlertTitle, AlertDescription, VStack, HStack } from '@chakra-ui/react';
 import StockSearch from './StockSearch';
 import StockList from './StockList';
-import {fetchStocks, addStock, removeStock, StockData} from './services/api';
+import { fetchStocks, addStock, removeStock, StockData } from './services/api';
+import chakraTheme from './assets/theme';
 
 const App: React.FC = () => {
   const [stocks, setStocks] = useState<StockData[]>([]);
@@ -24,18 +25,18 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAddStock = async (stockSymbol: string) => {
+  const handleAddStock = async (stockSymbol: StockData) => {
     try {
-      if (stocks.some(stock => stock.symbol === stockSymbol)) {
-        setAlertMessage(`Stock ${stockSymbol} is already in the watchlist.`);
+      if (stocks.some(stock => stock.symbol === stockSymbol.symbol)) {
+        setAlertMessage(`Stock ${stockSymbol.symbol} is already in the watchlist.`);
         setOpenAlert(true);
         return;
       }
 
-      const newStock= await addStock(stockSymbol);
+      const newStock = await addStock(stockSymbol.symbol);
       setStocks(prevStocks => [...prevStocks, newStock]);
 
-      setAlertMessage(`Stock ${stockSymbol} added to watchlist.`);
+      setAlertMessage(`Stock ${stockSymbol.symbol} added to watchlist.`);
       setOpenAlert(true);
     } catch (error) {
       console.error('Error adding stock:', error);
@@ -69,25 +70,41 @@ const App: React.FC = () => {
   };
 
   return (
-      <Container maxWidth="md" className="mt-5">
-        <Typography variant="h4" align="center" gutterBottom>
-          Stock Watchlist
-        </Typography>
+      <ChakraProvider theme={chakraTheme}>
+        <Box
+            width="100vw"
+            height="100vh"
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            p={8}
+        >
+          <Text fontSize="4xl" fontWeight="bold" textAlign="center" mb={6}>
+            Stock Watchlist
+          </Text>
 
-        <StockSearch onAddStock={handleAddStock} />
+          <StockSearch onAddStock={handleAddStock} />
 
-        <Box mt={4}>
-          <StockList stocks={stocks} onRemoveStock={handleRemoveStock} />
+          <Box
+              width="100%"
+              maxW="1200px" // Adjust as needed for desktop
+              flex="1"
+              mt={6}
+          >
+            <StockList stocks={stocks} onRemoveStock={handleRemoveStock} />
+          </Box>
+
+          {openAlert && (
+              <Alert status="error" variant="top-accent" borderRadius="md" mt={6} onClose={handleCloseAlert}>
+                <AlertIcon />
+                <Box flex="1">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{alertMessage}</AlertDescription>
+                </Box>
+              </Alert>
+          )}
         </Box>
-
-        <Snackbar
-            open={openAlert}
-            autoHideDuration={4000}
-            onClose={handleCloseAlert}
-            message={alertMessage}
-            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        />
-      </Container>
+      </ChakraProvider>
   );
 };
 

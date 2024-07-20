@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
-import { List, Box, Typography} from '@mui/material';
+import { Box, Heading, VStack, Text } from '@chakra-ui/react';
 import StockDetails from './StockDetails'; // Replace with your StockDetails component
-import {fetchStockDetails, StockData, StockInformation} from './services/api'; // Adjust the path as per your API service
+import { fetchStockDetails, StockData, StockInformation } from './services/api'; // Adjust the path as per your API service
 import StockItem from './StockItem';
 
-
-interface stockList {
-  stocks: string[];
+interface StockListProps {
+  stocks: StockData[]; // Assuming stocks are of type StockData
   onRemoveStock: (index: number) => void;
 }
 
-
-const StockList: React.FC<stockList> = ({ stocks, onRemoveStock }) => {
-  const [selectedStock, setSelectedStock] = useState<StockInformation | null>(null);
-  const [stockDetails, setStockDetails] = useState<any>(null); // Replace 'any' with actual type of stock details
+const StockList: React.FC<StockListProps> = ({ stocks, onRemoveStock }) => {
+  const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
+  const [stockDetails, setStockDetails] = useState<StockInformation | null>(null);
 
   const handleRemoveStock = (index: number) => {
     onRemoveStock(index);
@@ -33,28 +31,30 @@ const StockList: React.FC<stockList> = ({ stocks, onRemoveStock }) => {
   };
 
   return (
-    <Box>
-      <Typography variant="h5" gutterBottom>
-        Your Stocks
-      </Typography>
-      <List>
-        {stocks.map((stock, index) => (
-          <StockItem
-            key={index}
-            stock={stock}
-            onSelect={() => handleSelectStock(stock)}
-            onRemove={() => handleRemoveStock(index)}
-            selected={stock === selectedStock}
-          />
-        ))}
-      </List>
-      {selectedStock && stockDetails && (
-        <Box mt={4}>
-          <Typography variant="h6">Stock Details for {selectedStock.name}</Typography>
-          <StockDetails stockInfo={selectedStock} />
-        </Box>
-      )}
-    </Box>
+      <Box>
+        <Heading as="h4" size="md" mb={4}>
+          Your Stocks
+        </Heading>
+        <VStack align="stretch" spacing={1} p={0} m={0} listStyleType="none"  >
+          {stocks.map((stock, index) => (
+              <StockItem
+                  key={index}
+                  stock={stock}
+                  onSelect={() => handleSelectStock(stock)}
+                  onRemove={() => handleRemoveStock(index)}
+                  selected={stock === selectedStock}
+              />
+          ))}
+        </VStack>
+        {selectedStock && stockDetails && (
+            <Box mt={4}>
+              <Text fontSize="lg" fontWeight="bold">
+                Stock Details for {stockDetails.name}
+              </Text>
+              <StockDetails stockInfo={stockDetails} />
+            </Box>
+        )}
+      </Box>
   );
 };
 

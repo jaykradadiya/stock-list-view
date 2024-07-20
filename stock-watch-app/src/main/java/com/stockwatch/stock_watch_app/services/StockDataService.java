@@ -33,7 +33,7 @@ public class StockDataService {
     private final StockInformationMapper stockInformationMapper;
 
     @Autowired
-    public StockDataService(@Qualifier("AlphaVantage") final StockWatchAPIProvider apiProvider,
+    public StockDataService(@Qualifier("NSE") final StockWatchAPIProvider apiProvider,
             LiveSearchStockMongoRepository liveSearchStockMongoRepository,
             StockDataMongoRepository stockDataMongoRepository, StockInformationMapper stockInformationMapper) {
         this.apiProvider = apiProvider;
@@ -42,7 +42,7 @@ public class StockDataService {
         this.stockInformationMapper = stockInformationMapper;
     }
 
-    @Scheduled(fixedDelay = 5000) // fetch data every 5 seconds
+    @Scheduled(fixedDelay = 500000) // fetch data every 5 seconds
     public void fetchDataAndStore() {
         List<LiveSearchStockDAO> liveSearchStockDAOS = this.liveSearchStockMongoRepository.getActiveSearchList();
         for (LiveSearchStockDAO liveSearchStockDAO : liveSearchStockDAOS) {
@@ -74,6 +74,9 @@ public class StockDataService {
         LiveSearchStockDAO stockBySymbol = this.liveSearchStockMongoRepository.getStockBySymbol(ticker);
         if (Objects.isNull(stockBySymbol)) {
             List<LiveSearchStockDAO> liveSearchStockDAOS = this.apiProvider.searchStock(ticker);
+
+            liveSearchStockDAOS = liveSearchStockDAOS.stream().filter(stoke -> stoke.getSymbol().equals(ticker)).collect(Collectors.toList());
+
             if (Objects.isNull(liveSearchStockDAOS) || liveSearchStockDAOS.size() != 1) {
                 throw new StockAppException(String.format("Symbol %s not found or not unique", ticker),
                         HttpStatus.BAD_REQUEST);

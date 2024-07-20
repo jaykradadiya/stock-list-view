@@ -1,118 +1,137 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
-    TextField,
-    Autocomplete,
-    CircularProgress,
     Box,
     Button,
-    Dialog,
-    DialogTitle,
-    DialogContent
-} from '@mui/material';
-import {fetchData, StockData} from './services/api';
+    Modal,
+    ModalOverlay,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalCloseButton,
+    Flex,
+    useToast,
+    useDisclosure
+} from '@chakra-ui/react';
+import AsyncCreatableSelect from 'react-select/async-creatable';
+import debounce from 'lodash.debounce';
+import { fetchData, StockData } from './services/api';
 
 interface Props {
-    onAddStock: (stock: string) => void;
+    onAddStock: (stock: StockData) => void;
 }
 
-
-const StockSearch: React.FC<Props> = ({onAddStock}) => {
+const StockSearch: React.FC<Props> = ({ onAddStock }) => {
+    const { isOpen, onOpen, onClose } = useDisclosure();
     const [inputValue, setInputValue] = useState('');
     const [loading, setLoading] = useState(false);
-    const [options, setOptions] = useState<StockData[]>([]);
     const [selectedOption, setSelectedOption] = useState<StockData | null>(null);
-    const [dialogOpen, setDialogOpen] = useState(false); // State for dialog visibility
+    const toast = useToast();
 
-    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setInputValue(event.target.value);
-        searchStocks(event.target.value);
-    };
-
-    const searchStocks = async (query: string) => {
-        if (query.trim() === '') {
-            setOptions([]);
+    const debouncedLoadOptions = debounce(async (inputValue: string, callback: (options: any[]) => void) => {
+        if (inputValue.trim() === '') {
+            callback([]);
             return;
         }
 
-        setLoading(true);
         try {
-            const response = await fetchData(query);
-            setOptions(response);
+            setLoading(true);
+            const response = await fetchData(inputValue);
+            const options = response.map(stock => ({
+                value: stock,
+                label: stock.name
+            }));
+            callback(options);
         } catch (error) {
             console.error('Error fetching stocks:', error);
-            setOptions([]);
+            callback([]);
+            toast({
+                title: 'Error fetching stocks.',
+                description: "There was an error fetching stock data. Please try again later.",
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+            });
         } finally {
             setLoading(false);
         }
+    }, 1400);
+
+    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value;
+        setInputValue(value);
+        debouncedLoadOptions(value, (options) => setOptions(options));
     };
 
     const handleAddStock = () => {
         if (selectedOption) {
-            onAddStock(selectedOption);
+            onAddStock(selectedOption.value);
             setInputValue('');
             setSelectedOption(null);
-            setOptions([]);
-            setDialogOpen(false); // Close dialog after adding stock
+            onClose();
+            toast({
+                title: 'Stock added.',
+                description: `${selectedOption.label} has been added to your stocks.`,
+                status: 'success',
+                duration: 5000,
+                isClosable: true,
+            });
         }
     };
 
     return (
-        <Box>
-            <Button variant="outlined" color="primary" onClick={() => setDialogOpen(true)}>
+        <Box textAlign="center" mt={8}>
+            <Button variant="outline" colorScheme="blue" onClick={onOpen}>
                 Add Stock
             </Button>
 
-            <Dialog
-                open={dialogOpen}
-                onClose={() => setDialogOpen(false)}
-                maxWidth="sm"
-                fullWidth
-            >
-                <DialogTitle>Add Stock</DialogTitle>
-                <DialogContent>
-                    <Box className="p-4 bg-white rounded-lg shadow-lg">
-                        <Autocomplete
-                            id="stock-search"
-                            options={options}
-                            getOptionLabel={(option) => option?.name}
-                            value={selectedOption}
-                            onChange={(event, newValue) => {
-                                setSelectedOption(newValue);
-                            }}
-                            renderInput={(params) => (
-                                <TextField
-                                    {...params}
-                                    label="Search Stock"
-                                    variant="outlined"
-                                    onChange={handleInputChange}
-                                    value={inputValue}
-                                    fullWidth
-                                    InputProps={{
-                                        ...params.InputProps,
-                                        endAdornment: (
-                                            <>
-                                                {loading ? <CircularProgress color="inherit" size={20}/> : null}
-                                                {params.InputProps.endAdornment}
-                                            </>
-                                        ),
-                                    }}
-                                />
-                            )}
-                        />
-
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            onClick={handleAddStock}
-                            disabled={!selectedOption}
-                            className="mt-3"
-                            fullWidth
-                        >
-                            Add Stock
-                        </Button>
-                    </Box>
-                </DialogContent>
-            </Dialog>
+            <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+                <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(10px)" />
+                <ModalContent>
+                    <ModalHeader textAlign="center">Add Stock</ModalHeader>
+                    <ModalCloseButton />
+                    <ModalBody>
+                        <Box p={4} bg="white" borderRadius="lg" boxShadow="lg">
+                            <AsyncCreatableSelect
+                                cacheOptions
+                                defaultOptions
+                                getOptionValue={(option) => option.name}
+                                loadOptions={debouncedLoadOptions as any}
+                                onChange={(selectedOption: StockData) => setSelectedOption(selectedOption)}
+                                value={selectedOption}
+                                placeholder="Select or create a stock"
+                                styles={{
+                                    control: (base) => ({
+                                        ...base,
+                                        boxShadow: 'sm',
+                                        borderRadius: 'md',
+                                        borderColor: 'gray.200',
+                                        '&:hover': { borderColor: 'gray.300' }
+                                    }),
+                                    menu: (base) => ({
+                                        ...base,
+                                        boxShadow: 'lg',
+                                        borderRadius: 'md',
+                                    })
+                                }}
+                            />
+                            <Flex justify="center" mt={3}>
+                                <Button
+                                    variant="solid"
+                                    colorScheme='teal'
+                                    onClick={handleAddStock}
+                                    disabled={!selectedOption}
+                                    width="full"
+                                    maxWidth="200px"
+                                    boxShadow="md"
+                                    borderRadius="md"
+                                >
+                                    Add Stock
+                                </Button>
+                            </Flex>
+                        </Box>
+                    </ModalBody>
+                </ModalContent>
+            </Modal>
         </Box>
     );
 };
