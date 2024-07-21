@@ -42,7 +42,7 @@ public class StockDataService {
         this.stockInformationMapper = stockInformationMapper;
     }
 
-    @Scheduled(fixedDelay = 500000) // fetch data every 5 seconds
+    @Scheduled(fixedDelay = 15000) // fetch data every 5 seconds
     public void fetchDataAndStore() {
         List<LiveSearchStockDAO> liveSearchStockDAOS = this.liveSearchStockMongoRepository.getActiveSearchList();
         for (LiveSearchStockDAO liveSearchStockDAO : liveSearchStockDAOS) {

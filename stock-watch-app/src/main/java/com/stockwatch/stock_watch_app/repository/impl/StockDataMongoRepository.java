@@ -8,14 +8,16 @@ import java.util.List;
 
 @Repository
 public class StockDataMongoRepository {
-    private StockDataRepository stockDataRepository;
+    private final StockDataRepository stockDataRepository;
 
     public StockDataMongoRepository(StockDataRepository stockDataRepository) {
         this.stockDataRepository = stockDataRepository;
     }
 
     public void saveStokeData(StockDataDAO dataDAO){
-        this.stockDataRepository.save(dataDAO);
+        if(!this.stockDataRepository.findBySymbolAndTimestamp(dataDAO.getSymbol(),dataDAO.getTimestamp()).isPresent()) {
+            this.stockDataRepository.save(dataDAO);
+        }
     }
 
     public List<StockDataDAO> getTopNResultOfSymbol(String symbol,Integer n){

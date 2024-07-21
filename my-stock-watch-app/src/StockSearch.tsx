@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
     Box,
     Button,
@@ -144,7 +144,6 @@ const StockSearch: React.FC<Props> = ({ onAddStock, buttonWidth }) => {
                                     colorScheme="teal"
                                     onClick={handleAddStock}
                                     isDisabled={!selectedOption}
-                                    isFullWidth
                                     size="lg"
                                 >
                                     Add Stock

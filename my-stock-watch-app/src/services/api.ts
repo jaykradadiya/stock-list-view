@@ -35,7 +35,7 @@ export interface StockHistory {
 // Populate StockInformation from JSON data
 
 
-const baseURL =  'http://localhost:8080/aphrodite';
+const baseURL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:8080/aphrodite';
 
 export const instance = axios.create({
     baseURL,

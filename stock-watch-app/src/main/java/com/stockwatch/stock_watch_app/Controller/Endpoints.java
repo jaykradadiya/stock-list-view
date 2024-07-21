@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Endpoints {
 
+    public static final String HEALTH_CHECK = "/healthcheck";
+
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class Stock {
         public static final String BASE_URL = "/api/stoke/v1";
