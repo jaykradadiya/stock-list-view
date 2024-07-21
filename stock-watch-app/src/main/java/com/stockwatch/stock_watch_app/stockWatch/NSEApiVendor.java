@@ -3,6 +3,7 @@ package com.stockwatch.stock_watch_app.stockWatch;
 import com.stockwatch.stock_watch_app.dao.mdb.LiveSearchStockDAO;
 import com.stockwatch.stock_watch_app.dao.mdb.StockDataDAO;
 import com.stockwatch.stock_watch_app.utility.ApiRequestHandlerUtility;
+import com.stockwatch.stock_watch_app.utility.NSECookieUtility;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -36,9 +37,10 @@ public class NSEApiVendor implements StockWatchAPIProvider {
     private String hostUrl;
 
     private final ApiRequestHandlerUtility apiRequestHandlerUtility;
-
-    public NSEApiVendor(ApiRequestHandlerUtility apiRequestHandlerUtility) {
+    private final NSECookieUtility nseCookieUtility;
+    public NSEApiVendor(ApiRequestHandlerUtility apiRequestHandlerUtility, NSECookieUtility nseCookieUtility) {
         this.apiRequestHandlerUtility = apiRequestHandlerUtility;
+        this.nseCookieUtility = nseCookieUtility;
     }
 
     @Override
@@ -48,9 +50,8 @@ public class NSEApiVendor implements StockWatchAPIProvider {
 
             params.put("q", ticker);
 
-            Map<String, String> headers = new HashMap<>();
+            Map<String, String> headers = nseCookieUtility.getHeaders();
 
-            headers.put("User-Agent", "PostmanRuntime/7.40.0");
             String url = hostUrl + "/api/search/autocomplete";
 
             JSONObject jsonObjectResponse = this.apiRequestHandlerUtility.getApiScrappingResponse(url, "GET",
@@ -87,9 +88,7 @@ public class NSEApiVendor implements StockWatchAPIProvider {
 
             params.put("symbol", ticker);
 
-            Map<String, String> headers = new HashMap<>();
-
-            headers.put("User-Agent", "PostmanRuntime/7.40.0");
+            Map<String, String> headers = nseCookieUtility.getHeaders();
             String url = hostUrl + "/api/historical/cm/equity";
 
             JSONObject jsonObjectResponse = this.apiRequestHandlerUtility.getApiScrappingResponse(url, "GET",

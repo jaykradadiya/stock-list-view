@@ -13,6 +13,7 @@ RUN mvn package -DskipTests
 # Stage 2: Run the application
 FROM openjdk:17-jdk-slim
 WORKDIR /app
+COPY src ./src
 COPY --from=build /app/target/stock-watch-app-0.0.1-SNAPSHOT.jar /app/stock-watch-app-0.0.1-SNAPSHOT.jar
 EXPOSE 8080
 CMD ["java", "-jar", "/app/stock-watch-app-0.0.1-SNAPSHOT.jar"]
