@@ -1,12 +1,13 @@
-import axios, {AxiosResponse} from 'axios';
+import axios, { AxiosResponse } from 'axios';
+
 export interface StockData {
     symbol: string;
     name: string;
-    currency: string,
-    type:string,
-    region: string,
-    marketOpen: string,
-    marketClose: string
+    currency: string;
+    type: string;
+    region: string;
+    marketOpen: string;
+    marketClose: string;
     // Add more fields as per your API response structure
 }
 
@@ -32,80 +33,60 @@ export interface StockHistory {
 }
 
 // Populate StockInformation from JSON data
-const mapJsonToStockInformation = (jsonData: any): StockInformation => {
-    return {
-        symbol: jsonData?.symbol,
-        currency: jsonData?.currency,
-        name: jsonData?.name,
-        timestamp: jsonData?.timestamp, // You need to adjust this based on actual usage
-        type: jsonData?.type,
-        region: jsonData?.region, // Adjust as per your requirement
-        marketOpen: jsonData?.marketOpen, // Adjust as per your requirement
-        marketClose: jsonData?.marketClose, // Adjust as per your requirement
-        stockHistories: jsonData?.stockHistories?.map((history:any) :StockHistory => ({
-            price: history?.price,
-            open: history?.open,
-            high: history?.high,
-            low: history?.low,
-            volume: history?.volume,
-            timestamp: history?.timestamp
-        }))
-    }
-};
+
+
+const baseURL =  'http://localhost:8080/aphrodite';
 
 export const instance = axios.create({
-    baseURL: 'http://localhost:8080/aphrodite', // Example base URL
+    baseURL,
 });
 
-export const fetchData = async (query: string): Promise<any> => {
-    try{
-        const response = await instance.get(`/api/stoke/v1/search/${query}`, {}) ;
+export const fetchData = async (query: string): Promise<StockData[]> => {
+    try {
+        const response: AxiosResponse<StockData[]> = await instance.get(`/api/stoke/v1/search/${query}`);
         return response.data;
     } catch (error) {
         console.error('Error fetching data:', error);
-        throw error;
+        throw new Error('Failed to fetch data');
     }
-};      
+};
 
-export const fetchStockDetails = async (symbol: string):Promise<StockInformation>  => {
+export const fetchStockDetails = async (symbol: string): Promise<StockInformation> => {
     try {
-    //   const response = await axios.get(`${baseURL}/stock/${symbol}`); // Replace with your API endpoint
-     const response:AxiosResponse<StockInformation> = await instance.get(`api/stoke/v1/info/${symbol}`, {}) ;
-      const  res = mapJsonToStockInformation(response.data); // Assuming the response contains detailed stock information
-    console.log(res);
-        return res;
+        const response: AxiosResponse<StockInformation> = await instance.get(`/api/stoke/v1/info/${symbol}`);
+        return  response.data;
     } catch (error) {
-      console.error('Error fetching stock details:', error);
-      throw error; // Handle or rethrow the error as needed
+        console.error('Error fetching stock details:', error);
+        throw new Error('Failed to fetch stock details');
     }
-  };
+};
 
-export const fetchStocks = async ():Promise<StockData[]> => {
+export const fetchStocks = async (): Promise<StockData[]> => {
     try {
-        const response:AxiosResponse<StockData[]> = await instance.get(`/api/watchlist/v1/`);
+        const response: AxiosResponse<StockData[]> = await instance.get(`/api/watchlist/v1/`);
         return response.data;
     } catch (error) {
         console.error('Error fetching stocks:', error);
-        throw error;
+        throw new Error('Failed to fetch stocks');
     }
 };
 
-export const addStock = async (stockSymbol: string):Promise<StockData[]> => {
+export const addStock = async (stockSymbol: string): Promise<StockData[]> => {
     try {
-        const response:AxiosResponse<StockData[]> = await instance.post(`/api/watchlist/v1/${stockSymbol}`, { });
+        const response: AxiosResponse<StockData[]> = await instance.post(`/api/watchlist/v1/${stockSymbol}`, {});
         return response.data;
     } catch (error) {
         console.error('Error adding stock:', error);
-        throw error;
+        throw new Error('Failed to add stock');
     }
 };
 
-export const removeStock = async (stockSymbol: string):Promise<StockData[]> => {
+export const removeStock = async (stockSymbol: string): Promise<StockData[]> => {
     try {
-        const response:AxiosResponse<StockData[]> = await instance.delete(`/api/watchlist/v1/${stockSymbol}`);
+        const response: AxiosResponse<StockData[]> = await instance.delete(`/api/watchlist/v1/${stockSymbol}`);
         return response.data; // Successful deletion
     } catch (error) {
         console.error('Error removing stock:', error);
-        throw error;
+        throw new Error('Failed to remove stock');
     }
 };

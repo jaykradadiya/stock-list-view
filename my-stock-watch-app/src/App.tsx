@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChakraProvider, Box, Text, Alert, AlertIcon, AlertTitle, AlertDescription } from '@chakra-ui/react';
+import { ChakraProvider, Box, Text, Alert, AlertIcon, AlertTitle, AlertDescription, CloseButton } from '@chakra-ui/react';
 import StockSidebar from './StockSidebar';
 import StockDetails from './StockDetails';
 import { fetchStocks, addStock, removeStock, fetchStockDetails, StockData, StockInformation } from './services/api';
@@ -11,9 +11,7 @@ const App: React.FC = () => {
   const [stocks, setStocks] = useState<StockData[]>([]);
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
   const [stockDetails, setStockDetails] = useState<StockInformation | null>(null);
-  const [alertMessage, setAlertMessage] = useState<string>('');
-  const [alertType, setAlertType] = useState<'success' | 'error' | null>(null);
-  const [openAlert, setOpenAlert] = useState<boolean>(false);
+  const [alert, setAlert] = useState<{ message: string, type: 'success' | 'error' | null } | null>(null);
 
   useEffect(() => {
     fetchInitialStocks();
@@ -34,9 +32,7 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching stocks:', error);
-      setAlertMessage('Failed to fetch stocks');
-      setAlertType('error');
-      setOpenAlert(true);
+      showAlert('Failed to fetch stocks', 'error');
     }
   };
 
@@ -48,6 +44,7 @@ const App: React.FC = () => {
       } catch (error) {
         console.error('Error fetching stock details:', error);
         setStockDetails(null);
+        showAlert('Failed to fetch stock details', 'error');
       }
     }
   };
@@ -55,27 +52,21 @@ const App: React.FC = () => {
   const handleAddStock = async (stock: StockData) => {
     try {
       if (stocks.some(s => s.symbol === stock.symbol)) {
-        setAlertMessage(`Stock ${stock.symbol} is already in the watchlist.`);
-        setAlertType('error');
-        setOpenAlert(true);
+        showAlert(`Stock ${stock.symbol} is already in the watchlist.`, 'error');
         return;
       }
 
       const newStock: StockData[] = await addStock(stock.symbol);
-      setStocks((prevStocks: StockData[]) => {
+      setStocks(prevStocks => {
         const existingSymbols = new Set(prevStocks.map(s => s.symbol));
         const filteredNewStocks = newStock.filter(newStock => !existingSymbols.has(newStock.symbol));
         return [...prevStocks, ...filteredNewStocks];
       });
       setSelectedStock(stock);
-      setAlertMessage(`Stock ${stock.symbol} added to watchlist.`);
-      setAlertType('success');
-      setOpenAlert(true);
+      showAlert(`Stock ${stock.symbol} added to watchlist.`, 'success');
     } catch (error) {
       console.error('Error adding stock:', error);
-      setAlertMessage('Failed to add stock');
-      setAlertType('error');
-      setOpenAlert(true);
+      showAlert('Failed to add stock', 'error');
     }
   };
 
@@ -85,27 +76,26 @@ const App: React.FC = () => {
       const success = await removeStock(stockToRemove.symbol);
 
       if (success) {
-        const updatedStocks = [...stocks];
-        updatedStocks.splice(index, 1);
+        const updatedStocks = stocks.filter((_, i) => i !== index);
         setStocks(updatedStocks);
         setSelectedStock(prev => prev?.symbol === stockToRemove.symbol ? null : prev);
-
-        setAlertMessage(`Stock ${stockToRemove.symbol} removed from watchlist.`);
-        setAlertType('success');
-        setOpenAlert(true);
+        showAlert(`Stock ${stockToRemove.symbol} removed from watchlist.`, 'success');
       }
     } catch (error) {
       console.error('Error removing stock:', error);
-      setAlertMessage('Failed to remove stock');
-      setAlertType('error');
-      setOpenAlert(true);
+      showAlert('Failed to remove stock', 'error');
     }
   };
 
-  const handleCloseAlert = () => {
-    setOpenAlert(false);
+  const showAlert = (message: string, type: 'success' | 'error') => {
+    setAlert({ message, type });
+    setTimeout(() => setAlert(null), 5000); // Automatically close alert after 5 seconds
   };
 
+  const handleCloseAlert = () => {
+    setAlert(null);
+  };
+  const alertType: "loading" | "info" | "warning" | "success" | "error" = alert?.type || "info";
   return (
       <ChakraProvider theme={chakraTheme}>
         <Box display="flex" height="100vh">
@@ -122,13 +112,14 @@ const App: React.FC = () => {
               Stock Details
             </Text>
             <StockDetails stockInfo={stockDetails} />
-            {openAlert && (
-                <Alert status={alertType || 'error'} variant="top-accent" borderRadius="md" mt={6} onClose={handleCloseAlert}>
+            {alert && (
+                <Alert status={alertType} variant="top-accent" borderRadius="md" mt={6}>
                   <AlertIcon />
                   <Box flex="1">
-                    <AlertTitle>{alertType === 'success' ? 'Success' : 'Error'}</AlertTitle>
-                    <AlertDescription>{alertMessage}</AlertDescription>
+                    <AlertTitle>{alert.type === 'success' ? 'Success' : 'Error'}</AlertTitle>
+                    <AlertDescription>{alert.message}</AlertDescription>
                   </Box>
+                  <CloseButton position="absolute" right="8px" top="8px" onClick={handleCloseAlert} />
                 </Alert>
             )}
           </Box>

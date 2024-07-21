@@ -8,22 +8,23 @@ import {
   Tr,
   Th,
   Td,
-  useColorModeValue,
 } from '@chakra-ui/react';
 import { StockInformation, fetchStockDetails } from './services/api';
 
 interface Props {
-  stockInfo: StockInformation | null; // Add selectedStockSymbol prop
+  stockInfo: StockInformation | null;
+  pollInterval?: number; // Add pollInterval prop
 }
 
-let noOfSeconds = 5;
-const StockDetails: React.FC<Props> = ({ stockInfo }) => {
+const StockDetails: React.FC<Props> = ({ stockInfo, pollInterval = 5000 }) => {
   const [currentStockInfo, setCurrentStockInfo] = useState<StockInformation | null>(stockInfo);
 
   useEffect(() => {
+    if (!stockInfo) return;
+
     // Function to fetch stock details
     const fetchDetails = async () => {
-      if (stockInfo?.symbol) {
+      if (stockInfo.symbol) {
         try {
           const details = await fetchStockDetails(stockInfo.symbol);
           setCurrentStockInfo(details);
@@ -37,11 +38,11 @@ const StockDetails: React.FC<Props> = ({ stockInfo }) => {
     fetchDetails();
 
     // Set up interval for polling
-    const intervalId = setInterval(fetchDetails, noOfSeconds*1000);
+    const intervalId = setInterval(fetchDetails, pollInterval);
 
-    // Clean up interval on component unmount or when selectedStockSymbol changes
+    // Clean up interval on component unmount or when stockInfo changes
     return () => clearInterval(intervalId);
-  }, [stockInfo]); // Dependency array includes selectedStockSymbol
+  }, [stockInfo, pollInterval]); // Dependency array includes stockInfo and pollInterval
 
   if (!currentStockInfo) {
     return <Text>No details available for this stock.</Text>;

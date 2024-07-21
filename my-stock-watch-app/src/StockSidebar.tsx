@@ -1,5 +1,15 @@
 import React from 'react';
-import { Box, IconButton, List, ListItem, Text, useColorModeValue, VStack, Divider, Spacer } from '@chakra-ui/react';
+import {
+    Box,
+    IconButton,
+    List,
+    ListItem,
+    Text,
+    useColorModeValue,
+    VStack,
+    Divider,
+    Spacer
+} from '@chakra-ui/react';
 import { CloseIcon } from '@chakra-ui/icons';
 import { StockData } from './services/api';
 import StockSearch from './StockSearch';
@@ -10,10 +20,17 @@ interface StockSidebarProps {
     onSelect: (stock: StockData) => void;
     onRemove: (index: number) => void;
     onAddStock: (symbol: StockData) => void;
-    sidebarWidth: string; // Add sidebarWidth prop
+    sidebarWidth: string;
 }
 
-const StockSidebar: React.FC<StockSidebarProps> = ({ stocks, selectedStock, onSelect, onRemove, onAddStock, sidebarWidth }) => {
+const StockSidebar: React.FC<StockSidebarProps> = React.memo(({
+                                                                  stocks,
+                                                                  selectedStock,
+                                                                  onSelect,
+                                                                  onRemove,
+                                                                  onAddStock,
+                                                                  sidebarWidth
+                                                              }) => {
     return (
         <Box
             width={sidebarWidth}
@@ -46,6 +63,8 @@ const StockSidebar: React.FC<StockSidebarProps> = ({ stocks, selectedStock, onSe
                         display="flex"
                         alignItems="center"
                         onClick={() => onSelect(stock)}
+                        role="button"
+                        aria-selected={selectedStock?.symbol === stock.symbol}
                     >
                         <VStack align="start" spacing={1} flex="1">
                             <Text fontWeight="bold">{stock.symbol}</Text>
@@ -53,7 +72,7 @@ const StockSidebar: React.FC<StockSidebarProps> = ({ stocks, selectedStock, onSe
                         </VStack>
                         <Spacer />
                         <IconButton
-                            aria-label="Remove stock"
+                            aria-label={`Remove ${stock.symbol}`}
                             icon={<CloseIcon />}
                             colorScheme="red"
                             variant="ghost"
@@ -68,6 +87,6 @@ const StockSidebar: React.FC<StockSidebarProps> = ({ stocks, selectedStock, onSe
             </List>
         </Box>
     );
-};
+});
 
 export default StockSidebar;

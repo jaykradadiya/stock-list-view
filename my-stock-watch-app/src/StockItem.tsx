@@ -2,14 +2,18 @@ import React from 'react';
 import { Box, IconButton, Text } from '@chakra-ui/react';
 import { CloseIcon } from '@chakra-ui/icons';
 
+interface Stock {
+    symbol: string;
+}
+
 interface Props {
-    stock: { symbol: string };
+    stock: Stock;
     onSelect: () => void;
     onRemove: () => void;
     selected: boolean;
 }
 
-const StockItem: React.FC<Props> = ({ stock, onSelect, onRemove, selected }) => {
+const StockItem: React.FC<Props> = React.memo(({ stock, onSelect, onRemove, selected }) => {
     const handleSelect = () => {
         onSelect();
     };
@@ -31,14 +35,15 @@ const StockItem: React.FC<Props> = ({ stock, onSelect, onRemove, selected }) => 
             boxShadow="md"
             _hover={{ boxShadow: 'lg', cursor: 'pointer' }}
             transition="all 0.3s ease-in-out"
-            position="relative" // Position relative to use absolute positioning for IconButton
+            position="relative"
+            aria-selected={selected} // Accessibility improvement
         >
             <Text fontSize="lg" color="gray.800" pr={10}>
                 {stock.symbol}
             </Text>
 
             <IconButton
-                aria-label="Remove stock"
+                aria-label={`Remove ${stock.symbol}`}
                 icon={<CloseIcon />}
                 colorScheme="red"
                 variant="ghost"
@@ -49,6 +54,6 @@ const StockItem: React.FC<Props> = ({ stock, onSelect, onRemove, selected }) => 
             />
         </Box>
     );
-};
+});
 
 export default StockItem;

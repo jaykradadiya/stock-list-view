@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     Box,
     Button,
@@ -8,10 +8,10 @@ import {
     ModalHeader,
     ModalBody,
     ModalCloseButton,
-    Flex,
     useToast,
     useDisclosure,
-    useColorModeValue
+    useColorModeValue,
+    Flex
 } from '@chakra-ui/react';
 import AsyncCreatableSelect from 'react-select/async-creatable';
 import debounce from 'lodash.debounce';
@@ -19,12 +19,11 @@ import { fetchData, StockData } from './services/api';
 
 interface Props {
     onAddStock: (stock: StockData) => void;
-    buttonWidth: string; // Add buttonWidth prop
+    buttonWidth: string;
 }
 
 const StockSearch: React.FC<Props> = ({ onAddStock, buttonWidth }) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
-    const [inputValue, setInputValue] = useState('');
     const [loading, setLoading] = useState(false);
     const [selectedOption, setSelectedOption] = useState<{ value: StockData; label: string } | null>(null);
     const toast = useToast();
@@ -62,9 +61,7 @@ const StockSearch: React.FC<Props> = ({ onAddStock, buttonWidth }) => {
     const handleAddStock = () => {
         if (selectedOption) {
             onAddStock(selectedOption.value);
-            setInputValue('');
-            setSelectedOption(null);
-            onClose();
+
             toast({
                 title: 'Stock added.',
                 description: `${selectedOption.value.symbol} - ${selectedOption.value.name} has been added to your stocks.`,
@@ -72,7 +69,20 @@ const StockSearch: React.FC<Props> = ({ onAddStock, buttonWidth }) => {
                 duration: 5000,
                 isClosable: true,
             });
+            resetState();
+            onClose();
         }
+    };
+
+    const resetState = () => {
+        setSelectedOption(null);
+        setLoading(false);
+    };
+
+    const handleModalClose = () => {
+        console.log("close");
+        resetState();
+        onClose(); // Ensure this function updates the state to close the modal
     };
 
     return (
@@ -91,10 +101,10 @@ const StockSearch: React.FC<Props> = ({ onAddStock, buttonWidth }) => {
             >
                 Add Stock
             </Button>
-            <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+            <Modal isOpen={isOpen} onClose={handleModalClose} size="lg" isCentered>
                 <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(10px)" />
-                <ModalContent>
-                    <ModalHeader textAlign="center">Add Stock</ModalHeader>
+                <ModalContent aria-labelledby="modal-title">
+                    <ModalHeader id="modal-title" textAlign="center">Add Stock</ModalHeader>
                     <ModalCloseButton />
                     <ModalBody>
                         <Box p={4} bg={useColorModeValue('white', 'gray.800')} borderRadius="lg" boxShadow="lg">
@@ -127,7 +137,19 @@ const StockSearch: React.FC<Props> = ({ onAddStock, buttonWidth }) => {
                                         padding: 10,
                                     })
                                 }}
+                                isLoading={loading}
                             />
+                            <Flex justifyContent="center" mt={4}>
+                                <Button
+                                    colorScheme="teal"
+                                    onClick={handleAddStock}
+                                    isDisabled={!selectedOption}
+                                    isFullWidth
+                                    size="lg"
+                                >
+                                    Add Stock
+                                </Button>
+                            </Flex>
                         </Box>
                     </ModalBody>
                 </ModalContent>
